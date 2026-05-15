@@ -1,8 +1,9 @@
 use duration_str::deserialize_duration;
-use log::{debug, error, info, trace, warn};
+use log::{debug, trace, warn};
 use serde::{Deserialize, Deserializer};
-use shell_exec::{Execution, Shell, ShellError};
+use shell_exec::{Shell, ShellError};
 use std::collections::HashMap;
+use std::process::Stdio;
 use std::{future::Future, pin::Pin, str, time::Duration};
 use tokio::{
     sync::broadcast::{Receiver, Sender},
@@ -903,17 +904,75 @@ async fn execute_command(
         None => Shell::default(),
     };
 
-    let execution = Execution::builder()
-        .shell(shell)
-        .cmd(command.to_string())
-        .timeout(*timeout)
-        .build();
+    let shell_program = match shell {
+        Shell::Zsh => "zsh",
+        Shell::Bash => "bash",
+        Shell::Sh => "sh",
+        Shell::Cmd => "cmd",
+        Shell::Powershell => "powershell",
+        Shell::Wsl => "wsl",
+    };
 
-    trace!("Executing command: {}", command);
-    let output = execution.execute(b"").await?;
-    let output_string = str::from_utf8(&output).unwrap_or("");
-    trace!("Command '{}' executed: {}", command, output_string);
-    Ok(output_string.to_string())
+    let mut process = tokio::process::Command::new(shell_program);
+    match shell {
+        Shell::Cmd => {
+            process.arg("/C");
+        }
+        Shell::Powershell => {
+            process.arg("-Command");
+        }
+        Shell::Wsl => {
+            process.arg("bash").arg("-c");
+        }
+        _ => {
+            process.arg("-c");
+        }
+    }
+
+    process
+        .arg(command)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true);
+
+    let child = process.spawn().map_err(ShellError::FailedSpawn)?;
+    let timed_output = time::timeout(*timeout, child.wait_with_output())
+        .await
+        .map_err(|_| ShellError::Timeout)?;
+    let output = timed_output.map_err(ShellError::FailedOutput)?;
+
+    let stdout_string = str::from_utf8(&output.stdout).unwrap_or("").trim().to_string();
+    let stderr_string = str::from_utf8(&output.stderr).unwrap_or("").trim().to_string();
+
+    if output.status.success() {
+        if stdout_string.is_empty() && !stderr_string.is_empty() {
+            debug!(
+                "Command '{}' succeeded with empty stdout, using stderr fallback='{}'",
+                command,
+                stderr_string
+            );
+            return Ok(stderr_string);
+        }
+
+        Ok(stdout_string)
+    } else {
+        let failure_message = if !stderr_string.is_empty() {
+            stderr_string
+        } else if !stdout_string.is_empty() {
+            stdout_string
+        } else {
+            format!("process exited with status {}", output.status)
+        };
+
+        warn!(
+            "Command '{}' failed with timeout {:?}: {}",
+            command,
+            timeout,
+            failure_message
+        );
+        Err(ShellError::Failure(failure_message))
+    }
 }
 
 #[cfg(test)]
