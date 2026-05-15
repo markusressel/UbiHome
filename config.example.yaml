@@ -24,3 +24,10 @@ switch:
 #     unit_of_measurement: 'lx'
 #     device_class: illuminance
 #     state_class: measurement
+
+# text_sensor:
+#   - platform: shell
+#     name: 'Active Sink Description'
+#     update_interval: 1s
+#     command: |-
+#       system-control audio sink active -c description

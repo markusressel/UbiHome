@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub enum Component {
     Button(UbiButton),
     Sensor(UbiSensor),
+    TextSensor(UbiTextSensor),
     BinarySensor(UbiBinarySensor),
     Switch(UbiSwitch),
     Light(UbiLight),
@@ -31,6 +32,16 @@ pub struct UbiSensor {
     pub device_class: Option<String>,
     pub unit_of_measurement: Option<String>,
     pub accuracy_decimals: Option<i32>,
+    pub id: String,
+}
+
+// https://developers.home-assistant.io/docs/core/entity/sensor/
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct UbiTextSensor {
+    pub name: String,
+    pub platform: String,
+    pub icon: Option<String>,
+    pub device_class: Option<String>,
     pub id: String,
 }
 

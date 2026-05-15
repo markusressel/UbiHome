@@ -11,6 +11,7 @@ use serde_tuple::{Deserialize_tuple, Serialize_tuple};
 pub(crate) enum HAMqttComponent {
     Button(HAMqttButton),
     Sensor(HAMqttSensor),
+    TextSensor(HAMqttTextSensor),
     BinarySensor(HAMqttBinarySensor),
     Switch(HAMqttSwitch),
     Number(HAMqttNumber),
@@ -89,6 +90,31 @@ pub(crate) struct HAMqttSensor {
 
     #[serde(rename = "unit_of_meas")]
     pub(crate) unit_of_measurement: String,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub(crate) struct HAMqttTextSensor {
+    #[serde(rename = "p")]
+    pub(crate) platform: String,
+
+    #[serde(rename = "uniq_id")]
+    pub(crate) unique_id: String,
+
+    #[serde(rename = "name")]
+    pub(crate) name: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "ic")]
+    pub(crate) icon: Option<String>,
+
+    #[serde(rename = "obj_id")]
+    pub(crate) object_id: String,
+
+    #[serde(rename = "stat_t")]
+    pub(crate) state_topic: String,
+
+    #[serde(rename = "dev_cla")]
+    pub(crate) device_class: String,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]

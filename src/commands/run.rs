@@ -264,6 +264,9 @@ pub(crate) fn run(
                             .await;
                     });
                 }
+                InternalComponent::TextSensor(_text_sensor) => {
+                    // Text sensors are forwarded directly without filters.
+                }
                 InternalComponent::Switch(switch) => {
                     // println!("Switch: {:?}", switch);
                 }
@@ -458,6 +461,12 @@ pub(crate) fn run(
                             });
                             publish_cmd = None;
                         }
+                        ChangedMessage::TextSensorValueChange { key, value } => {
+                            publish_cmd = Some(PublishedMessage::TextSensorValueChanged {
+                                key,
+                                value,
+                            });
+                        }
                         ChangedMessage::BinarySensorValueChange { key, value } => {
                             debug!("BinarySensorValueChange: {}", value);
                             signal_map_binary_sensor.get(&key).map(|signal| {
@@ -494,6 +503,9 @@ pub(crate) fn run(
                         InternalComponent::Switch(switch) => Component::Switch(switch.ha.clone()),
                         InternalComponent::Button(button) => Component::Button(button.ha.clone()),
                         InternalComponent::Sensor(sensor) => Component::Sensor(sensor.ha.clone()),
+                        InternalComponent::TextSensor(text_sensor) => {
+                            Component::TextSensor(text_sensor.ha.clone())
+                        }
                         InternalComponent::BinarySensor(binary_sensor) => {
                             Component::BinarySensor(binary_sensor.ha.clone())
                         }

@@ -12,8 +12,10 @@ use ubihome_core::home_assistant::sensors::{UbiLight, UbiNumber, UbiSwitch};
 use ubihome_core::internal::sensors::{InternalLight, InternalNumber, InternalSwitch};
 use ubihome_core::{
     config_template,
-    home_assistant::sensors::{UbiBinarySensor, UbiButton, UbiSensor},
-    internal::sensors::{InternalBinarySensor, InternalButton, InternalComponent, InternalSensor},
+    home_assistant::sensors::{UbiBinarySensor, UbiButton, UbiSensor, UbiTextSensor},
+    internal::sensors::{
+        InternalBinarySensor, InternalButton, InternalComponent, InternalSensor, InternalTextSensor,
+    },
     ChangedMessage, Module, PublishedMessage,
 };
 
@@ -52,6 +54,15 @@ pub struct ShellBinarySensorConfig {
 
 #[derive(Clone, Deserialize, Debug)]
 pub struct ShellSensorConfig {
+    pub command: String,
+
+    #[serde(default = "default_timeout_none")]
+    #[serde(deserialize_with = "deserialize_option_duration")]
+    pub update_interval: Option<Duration>,
+}
+
+#[derive(Clone, Deserialize, Debug)]
+pub struct ShellTextSensorConfig {
     pub command: String,
 
     #[serde(default = "default_timeout_none")]
@@ -112,6 +123,7 @@ config_template!(
     ShellButtonConfig,
     ShellBinarySensorConfig,
     ShellSensorConfig,
+    ShellTextSensorConfig,
     ShellSwitchConfig,
     ShellLightConfig,
     ShellNumberConfig
@@ -123,6 +135,7 @@ pub struct Default {
     binary_sensors: HashMap<String, ShellBinarySensorConfig>,
     buttons: HashMap<String, ShellButtonConfig>,
     sensors: HashMap<String, ShellSensorConfig>,
+    text_sensors: HashMap<String, ShellTextSensorConfig>,
     switches: HashMap<String, ShellSwitchConfig>,
     lights: HashMap<String, ShellLightConfig>,
     numbers: HashMap<String, ShellNumberConfig>,
@@ -268,12 +281,33 @@ impl Module for Default {
             }
         }
 
+        let mut text_sensors: HashMap<String, ShellTextSensorConfig> = HashMap::new();
+        for (_, any_sensor) in config.text_sensor.clone().unwrap_or_default() {
+            match any_sensor.extra {
+                TextSensorKind::shell(text_sensor) => {
+                    let id = any_sensor.default.get_object_id();
+                    components.push(InternalComponent::TextSensor(InternalTextSensor {
+                        ha: UbiTextSensor {
+                            platform: "text_sensor".to_string(),
+                            icon: any_sensor.default.icon.clone(),
+                            device_class: any_sensor.default.device_class.clone(),
+                            name: any_sensor.default.name.clone(),
+                            id: id.clone(),
+                        },
+                    }));
+                    text_sensors.insert(id.clone(), text_sensor);
+                }
+                _ => {}
+            }
+        }
+
         Ok(Default {
             config: config.shell,
             components,
             binary_sensors,
             buttons,
             sensors,
+            text_sensors,
             switches,
             lights,
             numbers,
@@ -295,6 +329,7 @@ impl Module for Default {
         let buttons = self.buttons.clone();
         let switches = self.switches.clone();
         let sensors = self.sensors.clone();
+        let text_sensors = self.text_sensors.clone();
         let lights = self.lights.clone();
         let numbers = self.numbers.clone();
         Box::pin(async move {
@@ -559,12 +594,24 @@ impl Module for Default {
                             match output {
                                 Ok(output) => {
                                     debug!("Sensor {} output: {}", key, &output);
-                                    let value = output;
-
-                                    _ = cloned_sender.send(ChangedMessage::SensorValueChange {
-                                        key: key.clone(),
-                                        value: value.parse().unwrap(),
-                                    });
+                                    match output.trim().parse::<f32>() {
+                                        Ok(value) => {
+                                            _ = cloned_sender.send(ChangedMessage::SensorValueChange {
+                                                key: key.clone(),
+                                                value,
+                                            });
+                                        }
+                                        Err(e) => {
+                                            debug!(
+                                                "Invalid sensor output '{}' for {}: {}",
+                                                output.trim(),
+                                                key,
+                                                e
+                                            );
+                                            interval.tick().await;
+                                            continue;
+                                        }
+                                    }
                                 }
                                 Err(e) => {
                                     debug!("Error executing command: {}", e);
@@ -574,6 +621,40 @@ impl Module for Default {
                         }
                     } else {
                         debug!("Sensor {} has no update interval", key);
+                    }
+                });
+            }
+
+            for (key, text_sensor) in text_sensors {
+                let cloned_config = config.clone();
+                let cloned_sender = sender.clone();
+                tokio::spawn(async move {
+                    if let Some(duration) = text_sensor.update_interval {
+                        let mut interval = time::interval(duration);
+                        debug!("Text sensor {} has update interval: {:?}", key, interval);
+                        loop {
+                            let output = execute_command(
+                                &cloned_config,
+                                text_sensor.command.as_str(),
+                                &cloned_config.timeout,
+                            )
+                            .await;
+                            match output {
+                                Ok(output) => {
+                                    debug!("Text sensor {} output: {}", key, &output);
+                                    _ = cloned_sender.send(ChangedMessage::TextSensorValueChange {
+                                        key: key.clone(),
+                                        value: output.trim().to_string(),
+                                    });
+                                }
+                                Err(e) => {
+                                    debug!("Error executing command: {}", e);
+                                }
+                            };
+                            interval.tick().await;
+                        }
+                    } else {
+                        debug!("Text sensor {} has no update interval", key);
                     }
                 });
             }

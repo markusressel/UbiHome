@@ -17,7 +17,7 @@ shell:
 
 > In the future an update interval of `0` will allow you to stream the output of long running commands (e.g. a json log line by line).
 
-### Sensors
+### Sensors (numeric)
 
 ```yaml
 sensor:
@@ -26,6 +26,17 @@ sensor:
     update_interval: 30s
     command: |-
       free | grep Mem | awk '{print $3/$2 * 100.0}'
+```
+
+### Text Sensors
+
+```yaml
+text_sensor:
+  - platform: shell
+    name: 'Active Sink Description'
+    update_interval: 1s
+    command: |-
+      system-control audio sink active -c description
 ```
 
 ### Switch

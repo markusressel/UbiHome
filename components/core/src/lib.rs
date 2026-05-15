@@ -8,6 +8,7 @@ pub mod mapper;
 pub mod number;
 pub mod sensor;
 pub mod sensor_mapper;
+pub mod text_sensor_mapper;
 pub mod switch;
 pub mod utils;
 pub extern crate paste;
@@ -70,6 +71,10 @@ pub enum ChangedMessage {
         key: String,
         value: f32,
     },
+    TextSensorValueChange {
+        key: String,
+        value: String,
+    },
     BinarySensorValueChange {
         key: String,
         value: bool,
@@ -121,6 +126,10 @@ pub enum PublishedMessage {
         key: String,
         value: f32,
     },
+    TextSensorValueChanged {
+        key: String,
+        value: String,
+    },
     BinarySensorValueChanged {
         key: String,
         value: bool,
@@ -170,6 +179,7 @@ macro_rules! config_template {
         $button_extension:ident,
         $binary_sensor_extension:ident,
         $sensor_extension:ident,
+        $text_sensor_extension:ident,
         $switch_extension:ident,
         $light_extension:ident,
         $number_extension:ident) => {
@@ -181,16 +191,19 @@ macro_rules! config_template {
         use ubihome_core::template_mapper;
         use ubihome_core::template_number;
         use ubihome_core::template_sensor;
+        use ubihome_core::template_text_sensor;
         use ubihome_core::template_switch;
 
         template_button!($component_name, $button_extension);
         template_binary_sensor!($component_name, $binary_sensor_extension);
         template_sensor!($component_name, $sensor_extension);
+        template_text_sensor!($component_name, $text_sensor_extension);
         template_switch!($component_name, $switch_extension);
         template_light!($component_name, $light_extension);
         template_number!($component_name, $number_extension);
 
         template_mapper!(map_sensor, Sensor);
+        template_mapper!(map_text_sensor, TextSensor);
         template_mapper!(map_button, ButtonConfig);
         template_mapper!(map_binary_sensor, BinarySensor);
         template_mapper!(map_switch, Switch);
@@ -208,6 +221,9 @@ macro_rules! config_template {
 
             #[serde(default, deserialize_with = "map_sensor")]
             pub sensor: Option<HashMap<String, Sensor>>,
+
+            #[serde(default, deserialize_with = "map_text_sensor")]
+            pub text_sensor: Option<HashMap<String, TextSensor>>,
 
             #[serde(default, deserialize_with = "map_binary_sensor")]
             pub binary_sensor: Option<HashMap<String, BinarySensor>>,

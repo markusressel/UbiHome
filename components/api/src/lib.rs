@@ -14,6 +14,7 @@ use esphome_native_api::proto::version_2025_12_1::ListEntitiesLightResponse;
 use esphome_native_api::proto::version_2025_12_1::ListEntitiesNumberResponse;
 use esphome_native_api::proto::version_2025_12_1::ListEntitiesSensorResponse;
 use esphome_native_api::proto::version_2025_12_1::ListEntitiesSwitchResponse;
+use esphome_native_api::proto::version_2025_12_1::ListEntitiesTextSensorResponse;
 use esphome_native_api::proto::version_2025_12_1::NumberCommandRequest;
 use esphome_native_api::proto::version_2025_12_1::NumberStateResponse;
 use esphome_native_api::proto::version_2025_12_1::SensorLastResetType;
@@ -22,6 +23,7 @@ use esphome_native_api::proto::version_2025_12_1::SensorStateResponse;
 use esphome_native_api::proto::version_2025_12_1::SubscribeHomeAssistantStateResponse;
 use esphome_native_api::proto::version_2025_12_1::SubscribeLogsResponse;
 use esphome_native_api::proto::version_2025_12_1::SwitchStateResponse;
+use esphome_native_api::proto::version_2025_12_1::TextSensorStateResponse;
 use log::debug;
 use log::info;
 use log::trace;
@@ -54,7 +56,17 @@ fn mac_to_u64(mac: &str) -> Result<u64, ParseIntError> {
     u64::from_str_radix(&mac, 16)
 }
 
-config_template!(api, ApiConfig, NoConfig, NoConfig, NoConfig, NoConfig, NoConfig, NoConfig);
+config_template!(
+    api,
+    ApiConfig,
+    NoConfig,
+    NoConfig,
+    NoConfig,
+    NoConfig,
+    NoConfig,
+    NoConfig,
+    NoConfig
+);
 
 #[derive(Clone, Debug)]
 pub struct UbiHomeDefault {
@@ -205,6 +217,26 @@ impl Module for UbiHomeDefault {
                                     api_components_by_key.insert(key, component_sensor);
                                     api_components_key_id.insert(sensor.id.clone(), key);
                                 }
+                                Component::TextSensor(text_sensor) => {
+                                    let key = hash_fnv1(&text_sensor.id);
+                                    let component_text_sensor =
+                                        ProtoMessage::ListEntitiesTextSensorResponse(
+                                            ListEntitiesTextSensorResponse {
+                                                object_id: text_sensor.id.clone(),
+                                                key,
+                                                name: text_sensor.name,
+                                                icon: text_sensor.icon.unwrap_or_default(),
+                                                disabled_by_default: false,
+                                                entity_category: EntityCategory::None as i32,
+                                                device_class: text_sensor
+                                                    .device_class
+                                                    .unwrap_or_default(),
+                                                device_id: 0,
+                                            },
+                                        );
+                                    api_components_by_key.insert(key, component_text_sensor);
+                                    api_components_key_id.insert(text_sensor.id.clone(), key);
+                                }
                                 Component::BinarySensor(binary_sensor) => {
                                     let key = hash_fnv1(&binary_sensor.id);
                                     let component_binary_sensor =
@@ -325,6 +357,22 @@ impl Module for UbiHomeDefault {
                                                     device_id: 0,
                                                     state: value,
                                                     missing_state: false,
+                                                },
+                                            ))
+                                            .await
+                                            .unwrap();
+                                    }
+                                    PublishedMessage::TextSensorValueChanged { key, value } => {
+                                        let key = api_components_key_id_clone.get(&key).unwrap();
+                                        debug!("TextSensorValueChanged: {:?}", &value);
+
+                                        tx_clone
+                                            .send(ProtoMessage::TextSensorStateResponse(
+                                                TextSensorStateResponse {
+                                                    key: key.clone(),
+                                                    state: value,
+                                                    missing_state: false,
+                                                    device_id: 0,
                                                 },
                                             ))
                                             .await

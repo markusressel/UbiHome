@@ -36,7 +36,17 @@ pub struct MqttConfig {
     pub password: Option<String>,
 }
 
-config_template!(mqtt, MqttConfig, NoConfig, NoConfig, NoConfig, NoConfig, NoConfig, NoConfig);
+config_template!(
+    mqtt,
+    MqttConfig,
+    NoConfig,
+    NoConfig,
+    NoConfig,
+    NoConfig,
+    NoConfig,
+    NoConfig,
+    NoConfig
+);
 
 #[derive(Clone, Debug)]
 pub struct Default {
@@ -195,6 +205,27 @@ impl Module for Default {
                                                     }),
                                                 );
                                             }
+                                            Component::TextSensor(sensor) => {
+                                                mqtt_components.insert(
+                                                    sensor.id.clone(),
+                                                    HAMqttComponent::TextSensor(HAMqttTextSensor {
+                                                        platform: "text_sensor".to_string(),
+                                                        icon: sensor.icon.clone(),
+                                                        unique_id: sensor.id.clone(),
+                                                        device_class: sensor
+                                                            .device_class
+                                                            .clone()
+                                                            .unwrap_or_default(),
+                                                        name: sensor.name.clone(),
+                                                        state_topic: format!(
+                                                            "{}/{}",
+                                                            base_topic_clone.clone(),
+                                                            sensor.id.clone()
+                                                        ),
+                                                        object_id: sensor.id.clone(),
+                                                    }),
+                                                );
+                                            }
                                             Component::BinarySensor(sensor) => {
                                                 mqtt_components.insert(
                                                     sensor.id.clone(),
@@ -328,6 +359,20 @@ impl Module for Default {
                                             QoS::AtMostOnce,
                                             false,
                                             value.to_string(),
+                                        )
+                                        .await
+                                    {
+                                        error!("{}", e)
+                                    }
+                                }
+                                PublishedMessage::TextSensorValueChanged { key, value } => {
+                                    debug!("Text sensor value published: {} = {}", key, value);
+                                    if let Err(e) = client
+                                        .publish(
+                                            format!("{}/{}", base_topic_clone, key),
+                                            QoS::AtMostOnce,
+                                            false,
+                                            value,
                                         )
                                         .await
                                     {

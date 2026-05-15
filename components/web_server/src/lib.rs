@@ -48,6 +48,7 @@ config_template!(
     NoConfig,
     NoConfig,
     NoConfig,
+    NoConfig,
     NoConfig
 );
 
@@ -149,6 +150,15 @@ async fn events_stream(
                         Event::default()
                             .event("state")
                             .data(format!("{{\"id\": \"{}\", \"value\": {}}}", key, value)),
+                    )
+                }
+                PublishedMessage::TextSensorValueChanged { key, value } => {
+                    return Some(
+                        Event::default().event("state").data(format!(
+                            "{{\"id\": \"{}\", \"value\": \"{}\"}}",
+                            key,
+                            value.replace('\\', "\\\\").replace('"', "\\\"")
+                        )),
                     )
                 }
                 PublishedMessage::BinarySensorValueChanged { key, value } => {
