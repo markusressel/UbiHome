@@ -153,13 +153,11 @@ async fn events_stream(
                     )
                 }
                 PublishedMessage::TextSensorValueChanged { key, value } => {
-                    return Some(
-                        Event::default().event("state").data(format!(
-                            "{{\"id\": \"{}\", \"value\": \"{}\"}}",
-                            key,
-                            value.replace('\\', "\\\\").replace('"', "\\\"")
-                        )),
-                    )
+                    return Some(Event::default().event("state").data(format!(
+                        "{{\"id\": \"{}\", \"value\": \"{}\"}}",
+                        key,
+                        value.replace('\\', "\\\\").replace('"', "\\\"")
+                    )))
                 }
                 PublishedMessage::BinarySensorValueChanged { key, value } => {
                     return Some(

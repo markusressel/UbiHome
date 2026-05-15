@@ -8,8 +8,8 @@ pub mod mapper;
 pub mod number;
 pub mod sensor;
 pub mod sensor_mapper;
-pub mod text_sensor_mapper;
 pub mod switch;
+pub mod text_sensor_mapper;
 pub mod utils;
 pub extern crate paste;
 
@@ -191,8 +191,8 @@ macro_rules! config_template {
         use ubihome_core::template_mapper;
         use ubihome_core::template_number;
         use ubihome_core::template_sensor;
-        use ubihome_core::template_text_sensor;
         use ubihome_core::template_switch;
+        use ubihome_core::template_text_sensor;
 
         template_button!($component_name, $button_extension);
         template_binary_sensor!($component_name, $binary_sensor_extension);

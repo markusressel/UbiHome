@@ -596,10 +596,12 @@ impl Module for Default {
                                     debug!("Sensor {} output: {}", key, &output);
                                     match output.trim().parse::<f32>() {
                                         Ok(value) => {
-                                            _ = cloned_sender.send(ChangedMessage::SensorValueChange {
-                                                key: key.clone(),
-                                                value,
-                                            });
+                                            _ = cloned_sender.send(
+                                                ChangedMessage::SensorValueChange {
+                                                    key: key.clone(),
+                                                    value,
+                                                },
+                                            );
                                         }
                                         Err(e) => {
                                             debug!(

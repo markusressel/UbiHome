@@ -1,9 +1,6 @@
 #[macro_export]
 macro_rules! template_text_sensor {
     ($component_name:ident, $text_sensor_extension:ident) => {
-        use $crate::sensor::SensorBase;
-        use $crate::sensor::UnknownSensor;
-
         #[allow(non_camel_case_types)]
         #[derive(Clone, Deserialize, Debug)]
         #[serde(tag = "platform")]
@@ -11,13 +8,13 @@ macro_rules! template_text_sensor {
         pub enum TextSensorKind {
             $component_name($text_sensor_extension),
             #[serde(untagged)]
-            Unknown(UnknownSensor),
+            Unknown($crate::sensor::UnknownSensor),
         }
 
         #[derive(Clone, Deserialize, Debug)]
         pub struct TextSensor {
             #[serde(flatten)]
-            pub default: SensorBase,
+            pub default: $crate::sensor::SensorBase,
 
             #[serde(flatten)]
             pub extra: TextSensorKind,

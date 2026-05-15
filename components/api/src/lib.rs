@@ -57,15 +57,7 @@ fn mac_to_u64(mac: &str) -> Result<u64, ParseIntError> {
 }
 
 config_template!(
-    api,
-    ApiConfig,
-    NoConfig,
-    NoConfig,
-    NoConfig,
-    NoConfig,
-    NoConfig,
-    NoConfig,
-    NoConfig
+    api, ApiConfig, NoConfig, NoConfig, NoConfig, NoConfig, NoConfig, NoConfig, NoConfig
 );
 
 #[derive(Clone, Debug)]

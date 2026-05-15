@@ -37,15 +37,7 @@ pub struct MqttConfig {
 }
 
 config_template!(
-    mqtt,
-    MqttConfig,
-    NoConfig,
-    NoConfig,
-    NoConfig,
-    NoConfig,
-    NoConfig,
-    NoConfig,
-    NoConfig
+    mqtt, MqttConfig, NoConfig, NoConfig, NoConfig, NoConfig, NoConfig, NoConfig, NoConfig
 );
 
 #[derive(Clone, Debug)]
