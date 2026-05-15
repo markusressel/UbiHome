@@ -365,13 +365,26 @@ impl Module for Default {
                                     &command,
                                     &cloned_config.timeout,
                                 )
-                                .await
-                                .unwrap();
-                                // If output is empty report status code
-                                if output.is_empty() {
-                                    trace!("Command executed successfully with no output.");
-                                } else {
-                                    trace!("Command executed successfully with output: {}", output);
+                                .await;
+                                match output {
+                                    Ok(output) => {
+                                        // If output is empty report status code
+                                        if output.is_empty() {
+                                            trace!("Command executed successfully with no output.");
+                                        } else {
+                                            trace!(
+                                                "Command executed successfully with output: {}",
+                                                output
+                                            );
+                                        }
+                                    }
+                                    Err(e) => {
+                                        warn!(
+                                            "Switch '{}' command '{}' failed: {}",
+                                            key, command, e
+                                        );
+                                        continue;
+                                    }
                                 }
 
                                 if let Some(command_state) = &switch.command_state {
@@ -421,13 +434,26 @@ impl Module for Default {
                                     &shell_button.command,
                                     &cloned_config.timeout,
                                 )
-                                .await
-                                .unwrap();
-                                // If output is empty report status code
-                                if output.is_empty() {
-                                    trace!("Command executed successfully with no output.");
-                                } else {
-                                    trace!("Command executed successfully with output: {}", output);
+                                .await;
+                                match output {
+                                    Ok(output) => {
+                                        // If output is empty report status code
+                                        if output.is_empty() {
+                                            trace!("Command executed successfully with no output.");
+                                        } else {
+                                            trace!(
+                                                "Command executed successfully with output: {}",
+                                                output
+                                            );
+                                        }
+                                    }
+                                    Err(e) => {
+                                        warn!(
+                                            "Button '{}' command '{}' failed: {}",
+                                            key, shell_button.command, e
+                                        );
+                                        continue;
+                                    }
                                 }
                             }
                         }
@@ -459,13 +485,26 @@ impl Module for Default {
                                     &command,
                                     &cloned_config.timeout,
                                 )
-                                .await
-                                .unwrap();
+                                .await;
 
-                                if output.is_empty() {
-                                    trace!("Command executed successfully with no output.");
-                                } else {
-                                    trace!("Command executed successfully with output: {}", output);
+                                match output {
+                                    Ok(output) => {
+                                        if output.is_empty() {
+                                            trace!("Command executed successfully with no output.");
+                                        } else {
+                                            trace!(
+                                                "Command executed successfully with output: {}",
+                                                output
+                                            );
+                                        }
+                                    }
+                                    Err(e) => {
+                                        warn!(
+                                            "Light '{}' command '{}' failed: {}",
+                                            key, command, e
+                                        );
+                                        continue;
+                                    }
                                 }
 
                                 // Handle brightness command if provided and supported
