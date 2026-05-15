@@ -60,6 +60,16 @@ config_template!(
     api, ApiConfig, NoConfig, NoConfig, NoConfig, NoConfig, NoConfig, NoConfig, NoConfig
 );
 
+fn normalize_unit_for_api(unit: Option<String>) -> String {
+    match unit {
+        // Proto3 omits empty strings on the wire; use a single visible-space sentinel
+        // so Home Assistant receives an explicit update and can drop a previously set unit.
+        Some(unit) if unit.trim().is_empty() => " ".to_string(),
+        Some(unit) => unit,
+        None => "".to_string(),
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct UbiHomeDefault {
     config: CoreConfig,
@@ -188,9 +198,9 @@ impl Module for UbiHomeDefault {
                                             name: sensor.name,
                                             device_id: 0,
                                             icon: "".to_string(),
-                                            unit_of_measurement: sensor
-                                                .unit_of_measurement
-                                                .unwrap_or("".to_string()),
+                                            unit_of_measurement: normalize_unit_for_api(
+                                                sensor.unit_of_measurement.clone(),
+                                            ),
                                             accuracy_decimals: sensor
                                                 .accuracy_decimals
                                                 .unwrap_or(2),
@@ -288,9 +298,9 @@ impl Module for UbiHomeDefault {
                                             step: number.step,
                                             disabled_by_default: false,
                                             entity_category: EntityCategory::None as i32,
-                                            unit_of_measurement: number
-                                                .unit_of_measurement
-                                                .unwrap_or_default(),
+                                            unit_of_measurement: normalize_unit_for_api(
+                                                number.unit_of_measurement.clone(),
+                                            ),
                                             mode: number.mode,
                                             device_class: number.device_class.unwrap_or_default(),
                                         },
@@ -774,5 +784,17 @@ api: {}
             module.api_config.port, None,
             "Port should be None (default)"
         );
+    }
+
+    #[test]
+    fn test_normalize_unit_for_api_empty() {
+        assert_eq!(normalize_unit_for_api(Some("".to_string())), " ");
+        assert_eq!(normalize_unit_for_api(Some("   ".to_string())), " ");
+    }
+
+    #[test]
+    fn test_normalize_unit_for_api_regular_and_none() {
+        assert_eq!(normalize_unit_for_api(Some("%".to_string())), "%");
+        assert_eq!(normalize_unit_for_api(None), "");
     }
 }
