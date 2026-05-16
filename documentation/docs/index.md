@@ -21,7 +21,7 @@ Explore the [examples](examples/index.md) to see how to use UbiHome.
 
 ```bash
 pi@raspberrypi:~/ $ ubihome
-UbiHome - 0.13.0
+UbiHome - 0.14.0
 
 UbiHome is a system which allows you to integrate any device running an OS into your smart home.
 https://github.com/UbiHome/UbiHome
@@ -63,8 +63,6 @@ Options:
 
 ... Control USB Devices?
 
-Rust clippy:
-https://github.com/rust-lang/rust-clippy
 
 Add Badges?
 https://github.com/squidfunk/mkdocs-material/discussions/7137
